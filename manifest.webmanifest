@@ -1,0 +1,16 @@
+{
+  "name": "Annie's Gym",
+  "short_name": "Annie's Gym",
+  "description": "Annie's workouts, cheered on by the whole family.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#15131f",
+  "theme_color": "#15131f",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
