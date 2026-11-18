@@ -359,13 +359,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .splash-paw:nth-child(even) { bottom: 16px; }
 .splash-paw .paw { width: 100%; height: 100%; display: block; }
-.splash-line { max-width: 320px; opacity: 0; animation: fade-up 0.5s ease forwards 1.9s; }
+.splash-line { max-width: 320px; opacity: 0; animation: fade-up 0.5s ease forwards 1.2s; }
 .splash-line p { margin: 0 0 2px; font-size: 19px; font-weight: 500; }
 .splash-status {
   margin-top: 14px; background: var(--done); color: var(--done-ink); border-radius: 999px; padding: 6px 14px;
-  font-weight: 700; font-size: 15px; opacity: 0; animation: fade-up 0.5s ease forwards 2.2s;
+  font-weight: 700; font-size: 15px; opacity: 0; animation: fade-up 0.5s ease forwards 1.5s;
 }
-.splash-tap { margin-top: 18px; color: var(--muted); font-size: 14px; opacity: 0; animation: fade-up 0.5s ease forwards 2.5s; }
+.splash-tap { margin-top: 18px; color: var(--muted); font-size: 15px; opacity: 0; animation: fade-up 0.5s ease forwards 1.8s, tap-pulse 2s ease-in-out 2.4s infinite; }
+@keyframes tap-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
 
 @keyframes from-left { from { transform: translateX(-120vw) rotate(-20deg); } to { transform: none; } }
 @keyframes from-right { from { transform: translateX(120vw) rotate(20deg); } to { transform: none; } }

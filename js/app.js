@@ -1011,7 +1011,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ---------- opening screen ----------
-// Plays each time the app opens. Moves on by itself, or straight away on a tap.
+// Plays each time the app opens and stays until Annie taps, so she has time to read the line.
 
 let splashTimer = null;
 
@@ -1040,7 +1040,6 @@ function showSplash() {
     </div>`;
   $splash.hidden = false;
   splashOpen = true;
-  splashTimer = setTimeout(closeSplash, 3600);
 }
 
 function closeSplash() {
