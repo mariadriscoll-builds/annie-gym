@@ -86,6 +86,15 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .paw-num .paw { width: 84px; height: 84px; }
 .socks { display: flex; align-items: center; gap: 12px; }
 .start { margin-top: 20px; }
+.focus { margin-bottom: 14px; }
+.focus-label { margin: 0 0 8px; font-size: 13px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  min-height: 40px; padding: 8px 16px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--card); color: var(--ink); font-weight: 700; font-size: 15px;
+}
+.chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+
 .hint { text-align: center; color: var(--muted); font-size: 15px; }
 
 /* Tabs */
@@ -176,6 +185,15 @@ button { font: inherit; color: inherit; cursor: pointer; }
   border: 1px solid var(--accent);
 }
 .toast-card.in { animation: drop 0.45s cubic-bezier(0.2, 1.4, 0.4, 1); }
+.toast-card { touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab; }
+.toast-text { flex: 1; min-width: 0; }
+.toast-x {
+  flex: none; align-self: flex-start; width: 36px; height: 36px; margin: -4px -6px 0 0;
+  border: 0; border-radius: 50%; background: transparent; color: var(--muted); font-size: 16px;
+}
+.toast-x:active { background: var(--soft); }
+.toast-hint { display: block; margin-top: 4px; font-size: 11px; letter-spacing: 0.5px; color: var(--muted); opacity: 0.8; }
+
 .toast-card p { margin: 0; font-weight: 500; }
 .from { font-size: 13px; color: var(--muted); }
 .from::before { content: "— "; }
@@ -295,6 +313,17 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .confetti { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
 .confetti i { position: absolute; top: -20px; width: 10px; height: 16px; border-radius: 3px; animation: confetti linear forwards; }
 
+
+/* Selfies */
+.selfie-card h2 { margin-bottom: 4px; }
+.selfie-img { display: block; width: 100%; max-height: 52vh; object-fit: contain; border-radius: 16px; margin: 8px 0 10px; background: var(--soft); }
+.selfie-note { margin: 0 0 12px; color: var(--muted); font-size: 14px; }
+.selfie-row { display: flex; gap: 8px; margin-top: 10px; }
+.selfie-row .ghost { flex: 1; min-height: 44px; }
+.selfie-thumb { display: block; margin-top: 10px; padding: 0; border: 0; background: none; }
+.selfie-thumb img { display: block; width: 96px; height: 120px; object-fit: cover; border-radius: 12px; background: var(--soft); }
+.toggle { display: flex; align-items: center; gap: 10px; font-weight: 600; min-height: 44px; }
+.toggle input { width: 22px; height: 22px; accent-color: var(--accent); }
 
 /* Opening screen */
 #splash {

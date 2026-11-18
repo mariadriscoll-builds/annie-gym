@@ -4,12 +4,12 @@
 // reps: what to do for each of the 3 sets
 
 export const AREAS = [
-  { id: 'legs', label: 'Legs' },
+  { id: 'legs', day: 'Leg day', label: 'Legs' },
   { id: 'hinge', label: 'Hips & glutes' },
   { id: 'push', label: 'Push' },
   { id: 'pull', label: 'Pull' },
-  { id: 'arms', label: 'Shoulders & arms' },
-  { id: 'core', label: 'Core' },
+  { id: 'arms', day: 'Arm day', label: 'Shoulders & arms' },
+  { id: 'core', day: 'Core day', label: 'Core' },
 ];
 
 export const EXERCISES = [
@@ -113,11 +113,49 @@ export const EXERCISES = [
 ];
 
 export const CARDIO = {
-  warmup: { id: 'warmup', name: 'Warm-up', minutes: 5, reps: '5 minutes, easy pace',
-    tip: 'Treadmill or elliptical, your choice. Start easy and finish a little quicker than you started.' },
+  warmup: { id: 'warmup', name: 'Warm-up', minutes: 15, reps: '15 minutes',
+    tip: 'Treadmill or elliptical, your choice. Start easy and build to a pace you could still chat at.' },
+  stretch: { id: 'stretch', name: 'Cool-down stretches', minutes: 10, reps: '10 minutes',
+    tip: "Hold each 30 seconds a side: hamstrings, quads, hips, glutes (figure-four), chest in a doorway, then child's pose. Slow breaths." },
+  // finisher and cooldown are no longer used in new workouts; kept so older workouts in her history still show
   finisher: { id: 'finisher', name: 'Cardio finisher', minutes: 12, reps: '10–15 minutes',
     tip: 'Treadmill or elliptical. Pick a pace where you could still chat. Last two minutes, pick it up if you feel like it.' },
+  main: { id: 'main', name: 'Cardio', minutes: 30, reps: '25–35 minutes',
+    tip: 'Treadmill or elliptical at a pace you could chat at. Feeling good? Add a 1-minute faster burst every 5 minutes.' },
+  cooldown: { id: 'cooldown', name: 'Cool-down', minutes: 5, reps: '5 minutes, easy',
+    tip: 'Slow right down, then stretch anything that feels tight. Lovely work.' },
 };
+
+// What a workout holds for each focus. Full body is the default every time.
+// Each slot picks one exercise from an area, optionally from a short list of ids.
+export const FOCUSES = [
+  { id: 'full', day: 'Full body', label: 'Full body', start: "Start today's workout",
+    hint: '15-minute warm-up, 6 full-body moves, 10 minutes of stretches. About an hour.',
+    slots: ['legs', 'hinge', 'push', 'pull', 'arms', 'core'] },
+  { id: 'arms', label: 'Arms', start: 'Start arm day',
+    hint: '15-minute warm-up, 6 shoulder and arm moves, 10 minutes of stretches.',
+    slots: [{ area: 'arms', ids: ['triceps-ext-db'] }, { area: 'arms', ids: ['curl-db', 'hammer-curl'] },
+      { area: 'arms', ids: ['shoulder-press-db', 'arnold-press', 'overhead-press-bb'] }, 'arms', 'arms', 'arms'] },
+  { id: 'legs', label: 'Legs', start: 'Start leg day',
+    hint: '15-minute warm-up, 6 leg and glute moves, 10 minutes of stretches.',
+    slots: ['legs', 'legs', 'legs', 'hinge', 'hinge', 'hinge'] },
+  { id: 'back', day: 'Back day', label: 'Back', start: 'Start back day',
+    hint: '15-minute warm-up, 5 back moves and a deadlift, 10 minutes of stretches.',
+    slots: ['pull', 'pull', 'pull', 'pull', 'pull', { area: 'hinge', ids: ['rdl-db', 'rdl-bb', 'deadlift-bb', 'kb-deadlift'] }] },
+  { id: 'chest', day: 'Chest day', label: 'Chest', start: 'Start chest day',
+    hint: '15-minute warm-up, 5 chest moves and a triceps move, 10 minutes of stretches.',
+    slots: ['push', 'push', 'push', 'push', 'push', { area: 'arms', ids: ['triceps-ext-db'] }] },
+  { id: 'core', label: 'Core', start: 'Start core day',
+    hint: '15-minute warm-up, 6 core moves, 10 minutes of stretches.',
+    slots: ['core', 'core', 'core', 'core', 'core', 'core'] },
+  { id: 'cardio', day: 'Cardio day', label: 'Cardio', start: 'Start cardio day',
+    hint: '15-minute warm-up, 30 minutes on the treadmill or elliptical, 10 minutes of stretches. About 55 minutes.',
+    slots: [] },
+];
+
+export function focusById(id) {
+  return FOCUSES.find((f) => f.id === id) || FOCUSES[0];
+}
 
 export const SETS = 3;
 

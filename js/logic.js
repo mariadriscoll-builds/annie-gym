@@ -1,11 +1,14 @@
 // Pure logic: dates, week counting, weight suggestions, workout generation.
 // No DOM here, so it can be tested with node.
 
-import { AREAS, EXERCISES, CARDIO, exerciseById, weightStep } from './data/exercises.js';
+import { EXERCISES, CARDIO, exerciseById, weightStep, focusById } from './data/exercises.js';
 import { SURPRISES } from './data/surprises.js';
 
-export const PARTS_PER_SESSION = 8; // warm-up + 6 strength + finisher
-export const PARTS_TO_COUNT = 7; // a session counts toward the week at 7 of 8
+// A workout counts toward the week when all but one of its parts are done
+// (7 of 8 on a weights day, 2 of 3 on a cardio day).
+export function partsToCount(session) {
+  return Math.max(1, session.items.length - 1);
+}
 export const SESSIONS_PER_WEEK = 3;
 export const MAX_BARBELL = 2; // barbell setups take time; keep it to 2 per session
 
@@ -44,7 +47,7 @@ export function doneCount(session) {
 }
 
 export function isCounted(session) {
-  return doneCount(session) >= PARTS_TO_COUNT;
+  return doneCount(session) >= partsToCount(session);
 }
 
 function countedPerWeek(sessions) {
@@ -156,32 +159,42 @@ function lastSessionIds(sessions) {
   return new Set(latest.items.map((i) => i.exerciseId).filter(Boolean));
 }
 
-export function generateSession(sessions, todayKey, rng = Math.random) {
+export function generateSession(sessions, todayKey, rng = Math.random, focusId = 'full') {
+  const focus = focusById(focusId);
   const avoid = lastSessionIds(sessions);
+  const chosen = new Set();
   let barbells = 0;
   const lifts = [];
-  for (const area of AREAS) {
-    let options = EXERCISES.filter((e) => e.area === area.id);
+  for (const slot of focus.slots) {
+    const area = typeof slot === 'string' ? slot : slot.area;
+    const ids = typeof slot === 'string' ? null : slot.ids;
+    let options = EXERCISES.filter((e) => e.area === area && (!ids || ids.includes(e.id)) && !chosen.has(e.id));
     const fresh = options.filter((e) => !avoid.has(e.id));
     if (fresh.length) options = fresh;
     if (barbells >= MAX_BARBELL) {
       const noBar = options.filter((e) => e.equipment !== 'barbell');
       if (noBar.length) options = noBar;
     }
+    if (!options.length) continue;
     const ex = pick(options, rng);
+    chosen.add(ex.id);
     if (ex.equipment === 'barbell') barbells += 1;
-    lifts.push({ kind: 'lift', exerciseId: ex.id, area: area.id, weight: null, done: false });
+    lifts.push({ kind: 'lift', exerciseId: ex.id, area, weight: null, done: false });
   }
+  const items = focus.id === 'cardio'
+    ? [CARDIO.warmup, CARDIO.main, CARDIO.stretch].map((c) => ({ kind: 'cardio', cardioId: c.id, done: false }))
+    : [
+      { kind: 'cardio', cardioId: CARDIO.warmup.id, done: false },
+      ...lifts,
+      { kind: 'cardio', cardioId: CARDIO.stretch.id, done: false },
+    ];
   return {
     id: `s-${Date.now().toString(36)}-${Math.floor(rng() * 1e6).toString(36)}`,
     date: todayKey,
+    focus: focus.id,
     startedAt: Date.now(),
     finishedAt: null,
-    items: [
-      { kind: 'cardio', cardioId: CARDIO.warmup.id, done: false },
-      ...lifts,
-      { kind: 'cardio', cardioId: CARDIO.finisher.id, done: false },
-    ],
+    items,
   };
 }
 

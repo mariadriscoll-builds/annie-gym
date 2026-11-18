@@ -1,13 +1,14 @@
-import { AREAS, CARDIO, SETS, exerciseById } from './data/exercises.js';
+import { AREAS, CARDIO, SETS, FOCUSES, exerciseById, focusById } from './data/exercises.js';
 import {
   CHARACTERS, PROPS, FAMILY, EXERCISE_MESSAGES, SESSION_MESSAGES, FRESH_WEEK_MESSAGES,
   WEEK_MESSAGES, BONUS_SOCK_MESSAGES, WELCOME, OPENING_LINES,
 } from './data/messages.js';
 import { SURPRISES } from './data/surprises.js';
 import { HOWTO } from './data/howto.js';
+import { saveSelfie, getSelfie, deleteSelfie, frameSelfie, saveToPhone, FRAME_PAIRS, randomPairIndex } from './photos.js';
 import {
   toKey, fromKey, weekKey, doneCount, isCounted, weekTotals, earnedSurprises, dateSurprise,
-  weightAdvice, generateSession, swapOption, nextFromBag, PARTS_PER_SESSION, PARTS_TO_COUNT,
+  weightAdvice, generateSession, swapOption, nextFromBag, partsToCount,
   SESSIONS_PER_WEEK,
 } from './logic.js';
 import { loadState, saveState, askToPersist, exportJSON, importJSON } from './store.js';
@@ -19,12 +20,13 @@ const $overlay = document.getElementById('overlay');
 const $toast = document.getElementById('toast');
 const $timer = document.getElementById('timer');
 const $splash = document.getElementById('splash');
+const $selfieInput = document.getElementById('selfie-input');
 
 let state = loadState();
-let view = { screen: 'home', month: null, confirmFinish: false };
+// focus starts on Full body every time the app opens, and goes back to it after each workout
+let view = { screen: 'home', month: null, confirmFinish: false, focus: 'full' };
 let queue = [];
 let showing = null;
-let toastTimeout = null;
 let timer = null; // { endsAt, label, tick }
 let wakeLock = null;
 
@@ -141,6 +143,7 @@ function render() {
   else if (s === 'settings') html = settingsHTML();
   $app.innerHTML = html + (s === 'session' ? '' : navHTML());
   document.body.dataset.screen = s;
+  if (s === 'history') hydrateSelfies();
 }
 
 function navHTML() {
@@ -196,16 +199,29 @@ function homeHTML() {
   ${t.socks ? `<section class="card socks">${prop('sock', 'big-prop')}<div><strong>${t.socks}</strong> ${t.socks === 1 ? 'sock' : 'socks'} in Dobby's collection</div></section>` : ''}
   <div class="start">
     ${state.active
-      ? `<button class="primary big-btn" data-act="continue-session">Back to your workout</button>`
-      : `<button class="primary big-btn" data-act="start-session">${didToday ? 'Start another workout' : "Start today's workout"}</button>`}
-    <p class="hint">Warm-up, 6 full-body moves, cardio finisher. About 45 to 60 minutes.</p>
+      ? `<button class="primary big-btn" data-act="continue-session">Back to your workout</button>
+         <p class="hint">${esc(focusById(state.active.focus).label)} workout in progress.</p>`
+      : `${focusPickerHTML()}
+         <button class="primary big-btn" data-act="start-session">${startLabel(didToday)}</button>
+         <p class="hint">${esc(focusById(view.focus).hint)}</p>`}
   </div>`;
+}
+
+function startLabel(didToday) {
+  const f = focusById(view.focus);
+  if (f.id === 'full') return didToday ? 'Start another workout' : "Start today's workout";
+  return f.start;
+}
+
+function focusPickerHTML() {
+  const chips = FOCUSES.map((f) => `<button class="chip ${view.focus === f.id ? 'on' : ''}" data-act="focus" data-focus="${f.id}" aria-pressed="${view.focus === f.id}">${esc(f.label)}</button>`).join('');
+  return `<div class="focus"><p class="focus-label">Today's focus</p><div class="chips" role="group" aria-label="Today's focus">${chips}</div></div>`;
 }
 
 function itemInfo(item) {
   if (item.kind === 'cardio') {
     const c = CARDIO[item.cardioId];
-    return { name: c.name, reps: c.reps, tip: c.tip, area: 'Cardio', weighted: false, cardio: c };
+    return { name: c.name, reps: c.reps, tip: c.tip, area: c.id === 'stretch' ? 'Cool-down' : 'Cardio', weighted: false, cardio: c };
   }
   const ex = exerciseById(item.exerciseId);
   const area = AREAS.find((a) => a.id === item.area);
@@ -229,11 +245,12 @@ function sessionHTML() {
   const s = state.active;
   if (!s) return homeHTML();
   const done = doneCount(s);
-  const left = PARTS_TO_COUNT - done;
+  const total = s.items.length;
+  const left = partsToCount(s) - done;
   let hint;
   if (done === 0) hint = "Let's go! Tap Done after each part.";
   else if (left > 0) hint = `${left} more and this one counts toward your week.`;
-  else if (done < PARTS_PER_SESSION) hint = 'This one counts! Finish whenever you like.';
+  else if (done < total) hint = 'This one counts! Finish whenever you like.';
   else hint = 'Everything done! Tap Finish for your celebration.';
 
   const cards = s.items.map((item, i) => {
@@ -253,7 +270,7 @@ function sessionHTML() {
     }
     const timerBtn = item.kind === 'cardio'
       ? `<button class="ghost" data-act="cardio-timer" data-i="${i}">${info.cardio.minutes}:00 timer</button>`
-      : `<button class="ghost" data-act="rest" data-i="${i}">Rest timer</button><button class="ghost" data-act="swap" data-i="${i}">Swap</button>`;
+      : `<button class="ghost" data-act="swap" data-i="${i}">Swap</button>`;
     return `
     <article class="card ex ${item.done ? 'done' : ''} ${item.kind}">
       <div class="ex-top"><span class="area">${esc(info.area)}</span>${item.done ? '<span class="check">✓</span>' : ''}</div>
@@ -273,7 +290,7 @@ function sessionHTML() {
   <header class="session-head">
     <button class="icon-btn" data-act="nav" data-to="home" aria-label="Back to home">←</button>
     <div class="progress">
-      <div class="bar"><span style="width:${(done / PARTS_PER_SESSION) * 100}%"></span></div>
+      <div class="bar"><span style="width:${(done / total) * 100}%"></span></div>
       <p>${hint}</p>
     </div>
   </header>
@@ -333,8 +350,9 @@ function historyHTML() {
       return `<li>${esc(info.name)}${i.weight ? ` <span class="muted">${i.weight} lb</span>` : ''}</li>`;
     }).join('');
     return `<article class="card hist">
-      <div class="hist-head"><h3>${formatDate(s.date)}</h3>${isCounted(s) ? '<span class="badge">Counts ✓</span>' : ''}</div>
+      <div class="hist-head"><div><h3>${formatDate(s.date)}</h3>${s.focus && s.focus !== 'full' ? `<span class="muted">${esc(focusById(s.focus).day)}</span>` : ''}</div>${isCounted(s) ? '<span class="badge">Counts ✓</span>' : ''}</div>
       <ul>${moves}</ul>
+      ${s.selfie ? `<button class="selfie-thumb" data-act="selfie-view" data-id="${s.id}" aria-label="See the selfie from this workout"><img data-selfie="${s.id}" alt=""></button>` : ''}
     </article>`;
   }).join('');
   return `
@@ -373,6 +391,11 @@ function settingsHTML() {
     <p>Everything is saved on this phone. A backup file keeps it safe if you ever get a new phone.</p>
     <button class="primary wide" data-act="export">Save a backup</button>
     <label class="ghost wide file-btn">Restore from a backup<input type="file" accept="application/json,.json" data-import hidden></label>
+  </section>
+  <section class="card">
+    <h2>Workout selfies</h2>
+    <label class="toggle"><input type="checkbox" data-setting="selfiePrompt" ${state.selfiePrompt !== false ? 'checked' : ''}> Ask if I want a selfie after each workout</label>
+    <p class="muted">Selfies stay on this phone, with each workout in Proof. They aren't in the backup file, so tap Save to Photos on any you want to keep forever.</p>
   </section>
   <section class="card">
     <h2>Put it on your home screen</h2>
@@ -460,6 +483,7 @@ function showNext() {
     return;
   }
   const c = showing;
+  if (c.kind) { showSelfieCard(c); return; }
   const btn = queue.length ? 'Next!' : c.button || 'Yay!';
   $overlay.innerHTML = `
     ${c.confetti === false ? '' : confetti()}
@@ -473,26 +497,157 @@ function showNext() {
   $overlay.hidden = false;
 }
 
+// ---------- selfies ----------
+// After a workout the app asks (never insists) whether Annie wants a selfie.
+// The photo gets a Dobby and Luna frame, is kept with that workout in Proof,
+// and can be saved to her camera roll. All of it stays on her phone.
+
+let selfieCtx = null; // { sessionId, title, subtitle, date }
+let selfieBlob = null;
+let selfieFile = null; // the original photo, kept while the preview is open so the frame can change
+const selfieUrls = new Map(); // session id -> object URL, reused while the app is open
+
+function selfieUrl(id, blob) {
+  if (blob) {
+    if (selfieUrls.has(id)) URL.revokeObjectURL(selfieUrls.get(id));
+    selfieUrls.set(id, URL.createObjectURL(blob));
+  }
+  return selfieUrls.get(id) || '';
+}
+
+function showSelfieCard(c) {
+  let body = '';
+  if (c.kind === 'selfie-ask') {
+    selfieCtx = c;
+    body = `
+      <h2>Want to take a selfie?</h2>
+      <div class="stage dance">${avatar('dobby', 'lg', '--i:0')}${avatar('luna', 'lg', '--i:1')}</div>
+      <div class="lines"><p class="line" style="--d:0">Dobby and Luna want in on it. Totally optional.</p></div>
+      <button class="primary big-btn" data-act="selfie-take">Take a selfie</button>
+      <button class="ghost wide" data-act="next">Not today</button>`;
+  } else if (c.kind === 'selfie') {
+    body = `
+      <h2>Look at you!</h2>
+      <img class="selfie-img" src="${selfieUrl(c.sessionId)}" alt="Your workout selfie">
+      <p class="selfie-note">Saved with today's workout in Proof.</p>
+      <button class="primary big-btn" data-act="selfie-save" data-id="${c.sessionId}">Save to Photos</button>
+      <div class="selfie-row">
+        <button class="ghost" data-act="selfie-take">Retake</button>
+        <button class="ghost" data-act="next">${queue.length ? 'Next!' : 'Done'}</button>
+      </div>`;
+  } else if (c.kind === 'selfie-view') {
+    body = `
+      <img class="selfie-img" src="${selfieUrl(c.sessionId)}" alt="Workout selfie">
+      <button class="primary big-btn" data-act="selfie-save" data-id="${c.sessionId}">Save to Photos</button>
+      <div class="selfie-row">
+        <button class="ghost" data-act="selfie-delete" data-id="${c.sessionId}">Remove photo</button>
+        <button class="ghost" data-act="next">Close</button>
+      </div>`;
+  }
+  $overlay.innerHTML = `${c.kind === 'selfie' ? confetti(24) : ''}<div class="celebration selfie-card" role="dialog" aria-label="Selfie">${body}</div>`;
+  $overlay.hidden = false;
+}
+
+// Frame the photo with the current pair, keep it with the workout, show the preview
+async function frameAndShow() {
+  if (!selfieFile || !selfieCtx) return;
+  const pair = FRAME_PAIRS[selfieCtx.pairIndex] || FRAME_PAIRS[0];
+  const blob = await frameSelfie(selfieFile, { title: selfieCtx.title, subtitle: selfieCtx.subtitle, pair });
+  if (!blob) return;
+  selfieBlob = blob;
+  selfieUrl(selfieCtx.sessionId, blob);
+  const saved = await saveSelfie(selfieCtx.sessionId, blob);
+  const sess = state.sessions.find((x) => x.id === selfieCtx.sessionId);
+  if (sess && saved) { sess.selfie = true; save(); }
+  showing = { kind: 'selfie', sessionId: selfieCtx.sessionId };
+  showSelfieCard(showing);
+}
+
+$selfieInput?.addEventListener('change', async () => {
+  const file = $selfieInput.files && $selfieInput.files[0];
+  $selfieInput.value = '';
+  if (!file || !selfieCtx) return;
+  selfieFile = file;
+  // a surprise pair for this workout's selfie; a retake keeps the same pair
+  if (selfieCtx.pairIndex === undefined) {
+    selfieCtx.pairIndex = randomPairIndex(state.lastFramePair);
+    state.lastFramePair = selfieCtx.pairIndex;
+    delete state.framePair;
+    save();
+  }
+  try { await frameAndShow(); } catch (e) { /* a photo that can't be read just isn't framed */ }
+});
+
+async function hydrateSelfies() {
+  for (const img of $app.querySelectorAll('img[data-selfie]')) {
+    const id = img.dataset.selfie;
+    if (!selfieUrls.has(id)) {
+      const blob = await getSelfie(id);
+      if (!blob) { img.closest('.selfie-thumb')?.remove(); continue; }
+      selfieUrl(id, blob);
+    }
+    img.src = selfieUrls.get(id);
+  }
+}
+
 function surpriseToCelebration(s) {
   return { scene: s.scene, who: s.who, title: s.title, lines: s.lines, banner: s.banner };
 }
 
+// The family message after each exercise stays until Annie swipes it away
+// (any direction) or taps the close button. A new message replaces the old one.
 function showToast(msg) {
-  clearTimeout(toastTimeout);
   $toast.innerHTML = `
-    <div class="toast-card" data-act="toast-close">
+    <div class="toast-card" role="status">
       <div class="who-row">${msg.who.map((id, i) => avatar(id, 'sm pop', `--i:${i}`)).join('')}</div>
-      <div><p>${esc(msg.text)}</p><span class="from">${esc(namesOf(msg.who))}</span></div>
+      <div class="toast-text"><p>${esc(msg.text)}</p><span class="from">${esc(namesOf(msg.who))}</span><span class="toast-hint" aria-hidden="true">Swipe to close</span></div>
+      <button class="toast-x" data-act="toast-close" aria-label="Close message">✕</button>
     </div>`;
   $toast.hidden = false;
-  $toast.firstElementChild.classList.add('in');
-  toastTimeout = setTimeout(hideToast, 5000);
+  const card = $toast.firstElementChild;
+  card.classList.add('in');
+  makeSwipeable(card);
 }
 
 function hideToast() {
-  clearTimeout(toastTimeout);
   $toast.hidden = true;
   $toast.innerHTML = '';
+}
+
+function makeSwipeable(card) {
+  let startX = 0, startY = 0, dx = 0, dy = 0, dragging = false;
+  card.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('.toast-x')) return;
+    dragging = true;
+    startX = e.clientX; startY = e.clientY; dx = 0; dy = 0;
+    card.setPointerCapture?.(e.pointerId);
+    card.classList.remove('in');
+    card.style.transition = 'none';
+  });
+  card.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    dx = e.clientX - startX;
+    dy = Math.min(0, e.clientY - startY); // sideways, or up toward the top edge
+    card.style.transform = `translate(${dx}px, ${dy}px)`;
+    card.style.opacity = String(Math.max(0.2, 1 - (Math.abs(dx) + Math.abs(dy)) / 260));
+  });
+  const end = () => {
+    if (!dragging) return;
+    dragging = false;
+    card.style.transition = 'transform 0.25s ease, opacity 0.25s ease';
+    if (Math.abs(dx) > 70 || dy < -40) {
+      const outX = Math.abs(dx) > 70 ? Math.sign(dx) * window.innerWidth : 0;
+      const outY = Math.abs(dx) > 70 ? dy : -200;
+      card.style.transform = `translate(${outX}px, ${outY}px)`;
+      card.style.opacity = '0';
+      setTimeout(() => { if ($toast.firstElementChild === card) hideToast(); }, 250);
+    } else {
+      card.style.transform = '';
+      card.style.opacity = '';
+    }
+  };
+  card.addEventListener('pointerup', end);
+  card.addEventListener('pointercancel', end);
 }
 
 // ---------- timers ----------
@@ -588,9 +743,11 @@ function finishSession() {
   const s = state.active;
   if (!s) return;
   s.finishedAt = Date.now();
+  hideToast();
   const before = weekTotals(state.sessions, today());
   state.sessions.push(s);
   state.active = null;
+  view.focus = 'full';
   stopTimer();
   keepAwake(false);
   const after = weekTotals(state.sessions, today());
@@ -620,6 +777,14 @@ function finishSession() {
     state.seen[id] = today();
     const sp = SURPRISES.find((x) => x.id === id);
     if (sp) celebrate({ ...surpriseToCelebration(sp), button: 'Love it' });
+  }
+  if (state.selfiePrompt !== false) {
+    const day = focusById(s.focus).day;
+    celebrate({
+      kind: 'selfie-ask', sessionId: s.id, date: s.date,
+      title: `Workout #${state.sessions.length} done!`,
+      subtitle: `${day} · ${formatDate(s.date, { weekday: 'short', month: 'short', day: 'numeric' })}`,
+    });
   }
   save();
   go('home');
@@ -656,8 +821,37 @@ document.addEventListener('click', (e) => {
     case 'nav':
       go(el.dataset.to);
       break;
+    case 'selfie-take':
+      $selfieInput?.click();
+      break;
+    case 'selfie-save': {
+      const id = el.dataset.id;
+      const sess = state.sessions.find((x) => x.id === id);
+      const go2 = (blob) => blob && saveToPhone(blob, `annies-gym-${sess ? sess.date : 'selfie'}.jpg`);
+      if (selfieBlob && selfieCtx && selfieCtx.sessionId === id) go2(selfieBlob);
+      else getSelfie(id).then(go2);
+      break;
+    }
+    case 'selfie-view':
+      celebrate({ kind: 'selfie-view', sessionId: el.dataset.id });
+      break;
+    case 'selfie-delete': {
+      const id = el.dataset.id;
+      if (!window.confirm('Remove this photo from the app? Copies saved to Photos stay put.')) break;
+      deleteSelfie(id);
+      const sess = state.sessions.find((x) => x.id === id);
+      if (sess) { delete sess.selfie; save(); }
+      if (selfieUrls.has(id)) { URL.revokeObjectURL(selfieUrls.get(id)); selfieUrls.delete(id); }
+      showNext();
+      render();
+      break;
+    }
+    case 'focus':
+      view.focus = el.dataset.focus;
+      render();
+      break;
     case 'start-session':
-      state.active = generateSession(state.sessions, today());
+      state.active = generateSession(state.sessions, today(), Math.random, view.focus);
       save();
       keepAwake(true);
       go('session');
@@ -715,7 +909,7 @@ document.addEventListener('click', (e) => {
       stopTimer();
       break;
     case 'finish-session':
-      if (doneCount(state.active) >= PARTS_PER_SESSION) finishSession();
+      if (doneCount(state.active) >= state.active.items.length) finishSession();
       else { view.confirmFinish = true; render(); }
       break;
     case 'confirm-finish':
@@ -765,6 +959,10 @@ document.addEventListener('click', (e) => {
 
 document.addEventListener('change', (e) => {
   const t = e.target;
+  if (t.dataset && t.dataset.setting === 'selfiePrompt') {
+    state.selfiePrompt = t.checked;
+    save();
+  }
   if (t.dataset && t.dataset.weight !== undefined && state.active) {
     const v = parseFloat(t.value);
     state.active.items[Number(t.dataset.weight)].weight = Number.isFinite(v) && v > 0 ? v : null;
