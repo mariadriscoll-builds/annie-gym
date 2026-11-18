@@ -3,7 +3,7 @@ import {
   CHARACTERS, PROPS, FAMILY, EXERCISE_MESSAGES, SESSION_MESSAGES, FRESH_WEEK_MESSAGES,
   WEEK_MESSAGES, BONUS_SOCK_MESSAGES, WELCOME, OPENING_LINES,
 } from './data/messages.js';
-import { SURPRISES } from './data/surprises.js';
+import { SURPRISES, YEAR_TOASTS, YEAR_NOTE } from './data/surprises.js';
 import { HOWTO } from './data/howto.js';
 import { saveSelfie, getSelfie, deleteSelfie, frameSelfie, saveToPhone, FRAME_PAIRS, randomPairIndex } from './photos.js';
 import {
@@ -426,6 +426,27 @@ function stageHTML(c) {
   switch (c.scene) {
     case 'conga':
       return `<div class="stage conga"><div class="train">${av('md')}</div></div>`;
+    case 'stats':
+      return `<div class="stats-grid">${(c.tiles || []).map((t, i) => `<div class="stat" style="--i:${i}"><b data-count="${t.n}">0</b><span>${esc(t.label)}</span></div>`).join('')}</div>`;
+    case 'toasts': {
+      // one toast at a time: swipe left for the next, right to go back
+      const toasts = c.toasts || [];
+      const slides = toasts.map((t) => `
+        <div class="toast-slide">
+          <div class="slide-who">${t.who.map((id) => avatar(id, 'lg')).join('')}</div>
+          <p>${esc(t.text)}</p>
+          <span class="from">${esc(namesOf(t.who))}</span>
+        </div>`).join('');
+      const dots = toasts.map((_, i) => `<span class="dot ${i === 0 ? 'on' : ''}"></span>`).join('');
+      return `<div class="toast-carousel" data-index="0">
+        <div class="toast-viewport"><div class="toast-track">${slides}</div></div>
+        <div class="dots" aria-hidden="true">${dots}</div>
+        <p class="swipe-hint">Swipe for the next one</p>
+      </div>`;
+    }
+    case 'finale':
+      // a looping parade: the line is drawn twice so the stage is never empty
+      return `<div class="stage finale"><div class="parade">${av('lg')}${av('lg')}</div></div><div class="year-badge">1 year club</div>`;
     case 'danceoff':
       return `<div class="stage danceoff">${av('lg')}</div>`;
     case 'moira':
@@ -489,9 +510,9 @@ function showNext() {
   }
   const c = showing;
   if (c.kind) { showSelfieCard(c); return; }
-  const btn = queue.length ? 'Next!' : c.button || 'Yay!';
+  const btn = c.scene === 'toasts' && (c.toasts || []).length > 1 ? 'Next' : queue.length ? 'Next!' : c.button || 'Yay!';
   $overlay.innerHTML = `
-    ${c.confetti === false ? '' : confetti()}
+    ${c.confetti === false ? '' : confetti(c.bigConfetti ? 90 : 36)}
     <div class="celebration scene-${c.scene || 'dance'}" role="dialog" aria-label="${esc(c.title || 'Celebration')}">
       ${c.title ? `<h2>${esc(c.title)}</h2>` : ''}
       ${stageHTML(c)}
@@ -500,6 +521,8 @@ function showNext() {
       <button class="primary big-btn" data-act="next">${btn}</button>
     </div>`;
   $overlay.hidden = false;
+  animateCounts();
+  attachCardSwipe($overlay.querySelector('.celebration'));
 }
 
 // ---------- selfies ----------
@@ -593,6 +616,104 @@ async function hydrateSelfies() {
     }
     img.src = selfieUrls.get(id);
   }
+}
+
+// Swiping on celebration cards: left moves on (or to the next toast), right goes back a toast
+function carouselStep(dir) {
+  const car = $overlay.querySelector('.toast-carousel');
+  if (!car) return false;
+  const n = car.querySelectorAll('.toast-slide').length;
+  const i = Number(car.dataset.index || 0) + dir;
+  if (i < 0 || i >= n) return false;
+  car.dataset.index = String(i);
+  car.querySelector('.toast-track').style.transform = `translateX(${-i * 100}%)`;
+  car.querySelectorAll('.dot').forEach((d, k) => d.classList.toggle('on', k === i));
+  const hint = car.querySelector('.swipe-hint');
+  if (hint) hint.textContent = i < n - 1 ? 'Swipe for the next one' : 'Swipe to keep going';
+  const btn = $overlay.querySelector('[data-act=next]');
+  if (btn) btn.textContent = i < n - 1 ? 'Next' : (queue.length ? 'Next!' : (showing && showing.button) || 'Yay!');
+  return true;
+}
+
+function advance() {
+  if (!carouselStep(1)) showNext();
+}
+
+function attachCardSwipe(card) {
+  if (!card) return;
+  let sx = 0, sy = 0, down = false;
+  card.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('button, a')) return;
+    down = true; sx = e.clientX; sy = e.clientY;
+  });
+  card.addEventListener('pointerup', (e) => {
+    if (!down) return;
+    down = false;
+    const dx = e.clientX - sx, dy = e.clientY - sy;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+      if (dx < 0) advance(); else carouselStep(-1);
+    }
+  });
+  card.addEventListener('pointercancel', () => { down = false; });
+}
+
+// Numbers on the year card count up from zero
+function animateCounts() {
+  for (const el of $overlay.querySelectorAll('[data-count]')) {
+    const target = Number(el.dataset.count) || 0;
+    const startAt = performance.now() + 300;
+    const dur = 1200;
+    const step = (now) => {
+      const t = Math.min(1, Math.max(0, (now - startAt) / dur));
+      el.textContent = String(Math.round(target * (1 - Math.pow(1 - t, 3))));
+      if (t < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+}
+
+// Her year in numbers. Only positive, effort-based facts: never anything about her body.
+function yearStats() {
+  const done = state.sessions;
+  const t = weekTotals(done, today());
+  const counts = {};
+  const weights = {};
+  for (const sess of [...done].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))) {
+    for (const i of sess.items) {
+      if (i.kind !== 'lift' || !i.done) continue;
+      counts[i.exerciseId] = (counts[i.exerciseId] || 0) + 1;
+      if (i.weight > 0) {
+        const w = weights[i.exerciseId] || (weights[i.exerciseId] = { first: i.weight, max: i.weight });
+        w.max = Math.max(w.max, i.weight);
+      }
+    }
+  }
+  const tiles = [
+    { n: done.length, label: done.length === 1 ? 'workout' : 'workouts' },
+    { n: t.totalWeeks, label: 'full weeks' },
+  ];
+  if (t.socks) tiles.push({ n: t.socks, label: t.socks === 1 ? 'sock for Dobby' : 'socks for Dobby' });
+  const selfies = done.filter((x) => x.selfie).length;
+  if (selfies) tiles.push({ n: selfies, label: selfies === 1 ? 'selfie' : 'selfies' });
+  const lines = [];
+  const fav = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+  if (fav && exerciseById(fav[0])) lines.push(`Your go-to move: ${exerciseById(fav[0]).name}, ${fav[1]} times.`);
+  const best = Object.entries(weights).map(([id, w]) => ({ id, ...w, gain: w.max - w.first })).sort((a, b) => b.gain - a.gain)[0];
+  if (best && best.gain > 0 && exerciseById(best.id)) lines.push(`Biggest jump: ${exerciseById(best.id).name}, from ${best.first} lb to ${best.max} lb.`);
+  lines.push('Every one of those counted.');
+  return { tiles, lines };
+}
+
+// The one-year surprise is a three-part finale; every other surprise is one card
+function celebrateSurprise(sp, button) {
+  if (sp.id === 'total-52') {
+    const y = yearStats();
+    celebrate({ scene: 'stats', title: 'Your year, Annie', tiles: y.tiles, lines: y.lines });
+    celebrate({ scene: 'toasts', title: 'The family would like to say a few words', toasts: YEAR_TOASTS, confetti: false });
+    celebrate({ scene: 'finale', title: 'ONE WHOLE YEAR', who: [...FAMILY], lines: [YEAR_NOTE], button: 'Love you all', bigConfetti: true });
+    return;
+  }
+  celebrate(button ? { ...surpriseToCelebration(sp), button } : surpriseToCelebration(sp));
 }
 
 function surpriseToCelebration(s) {
@@ -781,7 +902,7 @@ function finishSession() {
     if (state.seen[id]) continue;
     state.seen[id] = today();
     const sp = SURPRISES.find((x) => x.id === id);
-    if (sp) celebrate({ ...surpriseToCelebration(sp), button: 'Love it' });
+    if (sp) celebrateSurprise(sp, 'Love it');
   }
   if (state.selfiePrompt !== false) {
     const day = focusById(s.focus).day;
@@ -806,7 +927,7 @@ function tidyOldActive() {
         if (!state.seen[id]) {
           state.seen[id] = today();
           const sp = SURPRISES.find((x) => x.id === id);
-          if (sp) celebrate(surpriseToCelebration(sp));
+          if (sp) celebrateSurprise(sp);
         }
       }
     }
@@ -941,7 +1062,7 @@ document.addEventListener('click', (e) => {
       render();
       break;
     case 'next':
-      showNext();
+      advance();
       break;
     case 'splash-close':
       closeSplash();
@@ -953,7 +1074,7 @@ document.addEventListener('click', (e) => {
       if (el.dataset.id === 'welcome') celebrate({ scene: 'dance', who: WELCOME.who, title: WELCOME.title, lines: [WELCOME.text], confetti: false });
       else {
         const sp = SURPRISES.find((x) => x.id === el.dataset.id);
-        if (sp) celebrate(surpriseToCelebration(sp));
+        if (sp) celebrateSurprise(sp);
       }
       break;
     case 'cal': {
@@ -1069,7 +1190,7 @@ function start() {
   if (ds && !state.seen[ds.seenKey]) {
     state.seen[ds.seenKey] = today();
     save();
-    celebrate({ ...surpriseToCelebration(ds.surprise), button: 'Love it' });
+    celebrateSurprise(ds.surprise, 'Love it');
   }
   // always open on the home screen; a workout in progress waits there with a button back into it
   render();

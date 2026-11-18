@@ -47,6 +47,7 @@ const DOGS = new Set(['dobby', 'luna']);
 export const FRAME_PAIRS = [
   ['dobby', 'luna'], ['maria', 'keith'], ['ian', 'gavin'], ['mom', 'dad'],
   ['shauna', 'emily'], ['andrew', 'brad'], ['maria-moira', 'dobby'], ['keith', 'luna'],
+  ['shauna', 'ryan'],
 ];
 
 function framePicture(id) {

@@ -317,6 +317,40 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .confetti i { position: absolute; top: -20px; width: 10px; height: 16px; border-radius: 3px; animation: confetti linear forwards; }
 
 
+/* One-year finale */
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0 4px; }
+.stat { background: var(--soft); border-radius: 16px; padding: 14px 8px; animation: pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both; animation-delay: calc(0.2s + var(--i) * 0.25s); }
+.stat b { display: block; font-size: 44px; line-height: 1; color: var(--accent); font-variant-numeric: tabular-nums; }
+.stat span { font-size: 14px; color: var(--muted); }
+.toast-list { display: flex; flex-direction: column; gap: 12px; margin: 10px 0 4px; text-align: left; }
+.toast-row { display: flex; gap: 12px; align-items: center; opacity: 0; animation: fade-up 0.5s ease forwards; animation-delay: calc(0.3s + var(--d) * 0.9s); }
+.toast-row p { margin: 0; font-size: 16px; }
+.toast-row .who-row .avatar + .avatar { margin-left: -16px; }
+.toast-row .who-row { width: 104px; justify-content: center; flex: none; }
+.finale { display: block; height: 130px; overflow: hidden; padding: 0; }
+.parade { display: flex; align-items: flex-end; gap: 4px; width: max-content; height: 100%; animation: parade 18s linear infinite; }
+.parade .avatar { animation: hop 0.5s ease-in-out infinite alternate; animation-delay: calc(var(--i) * -0.13s); }
+@keyframes parade { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.year-badge {
+  display: inline-block; margin: 6px 0 2px; padding: 8px 18px; border-radius: 999px;
+  background: var(--gold); color: var(--accent-ink); font-weight: 800; letter-spacing: 2px; text-transform: uppercase;
+  animation: pop 0.6s cubic-bezier(0.2, 1.5, 0.4, 1) both 0.8s;
+}
+
+/* Swipeable toasts */
+.celebration { touch-action: pan-y; }
+.toast-carousel { margin: 6px 0 4px; user-select: none; -webkit-user-select: none; }
+.toast-viewport { overflow: hidden; }
+.toast-track { display: flex; transition: transform 0.35s ease; }
+.toast-slide { flex: 0 0 100%; box-sizing: border-box; padding: 4px 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.slide-who { display: flex; justify-content: center; align-items: flex-end; gap: 2px; min-height: 120px; }
+.slide-who .avatar.lg { --size: 120px; }
+.toast-slide p { margin: 0; font-size: 19px; font-weight: 500; }
+.dots { display: flex; justify-content: center; gap: 6px; margin-top: 12px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); transition: background 0.2s; }
+.dot.on { background: var(--accent); }
+.swipe-hint { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+
 /* Selfies */
 .selfie-card h2 { margin-bottom: 4px; }
 .selfie-img { display: block; width: 100%; max-height: 52vh; object-fit: contain; border-radius: 16px; margin: 8px 0 10px; background: var(--soft); }
@@ -394,5 +428,5 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
-  .line, .bubble span, .splash-paw, .splash-line, .splash-status, .splash-tap { opacity: 1; }
+  .line, .bubble span, .splash-paw, .splash-line, .splash-status, .splash-tap, .toast-row { opacity: 1; }
 }

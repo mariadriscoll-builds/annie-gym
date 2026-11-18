@@ -15,7 +15,7 @@ export const SURPRISES = [
     id: 'total-1',
     trigger: { type: 'total', weeks: 1 },
     scene: 'conga',
-    who: ['maria', 'keith', 'dobby', 'luna', 'shauna', 'emily', 'andrew', 'ian', 'gavin', 'brad', 'mom', 'dad'],
+    who: ['maria', 'keith', 'dobby', 'luna', 'shauna', 'ryan', 'emily', 'andrew', 'ian', 'gavin', 'brad', 'mom', 'dad'],
     title: 'First full week!',
     lines: ['The whole family is doing a conga line in your honour.', 'Dad is out of rhythm. Nobody minds.'],
   },
@@ -62,7 +62,7 @@ export const SURPRISES = [
     id: 'total-52',
     trigger: { type: 'total', weeks: 52 },
     scene: 'party',
-    who: ['maria', 'keith', 'dobby', 'luna', 'shauna', 'emily', 'andrew', 'ian', 'gavin', 'brad', 'mom', 'dad'],
+    who: ['maria', 'keith', 'dobby', 'luna', 'shauna', 'ryan', 'emily', 'andrew', 'ian', 'gavin', 'brad', 'mom', 'dad'],
     title: 'ONE WHOLE YEAR',
     lines: [
       'Fifty-two weeks. Every single one of us is dancing.',
@@ -105,7 +105,7 @@ export const SURPRISES = [
     id: 'birthday',
     trigger: { type: 'date', month: 8, day: 29 },
     scene: 'birthday',
-    who: ['maria', 'keith', 'dobby', 'luna', 'shauna', 'emily', 'ian', 'gavin', 'mom', 'dad'],
+    who: ['maria', 'keith', 'dobby', 'luna', 'shauna', 'ryan', 'emily', 'ian', 'gavin', 'mom', 'dad'],
     title: 'Happy birthday, Annie!',
     lines: [
       'The whole family is singing.',
@@ -128,3 +128,21 @@ export const SURPRISES = [
     ],
   },
 ];
+
+// ---------- the one-year finale (52 full weeks) ----------
+// Plays as three cards: her year in numbers, the family's toasts, then everyone dancing.
+
+export const YEAR_TOASTS = [
+  { who: ['dobby'], text: 'A whole year. I celebrated by stealing every sock in the house. You are welcome.' },
+  { who: ['luna'], text: 'FIFTY-TWO WEEKS. I would like to do fifty-two laps of the yard about it. Starting now.' },
+  { who: ['keith'], text: 'Year one of marriage and year one of this. Proud doesn’t begin to cover it.' },
+  { who: ['mom', 'dad'], text: 'That’s our girl. A whole year. (We still won’t petsit Luna.)' },
+  { who: ['shauna'], text: 'We never believed the Annie stories. This one’s on the record. All 52 weeks of it.' },
+  { who: ['ryan'], text: 'Toddler, university roommate, now gym legend. I’ve seen every era. This one’s my favourite.' },
+  { who: ['ian', 'gavin'], text: 'Ant Danny: one year, undefeated.' },
+  { who: ['emily'], text: 'Favourite niece reporting: proudest I have ever been.' },
+  { who: ['andrew'], text: 'One whole year. Legit.' },
+  { who: ['brad', 'luna'], text: 'Luna says congratulations. So do I. In that order.' },
+];
+
+export const YEAR_NOTE = 'Annie, one whole year. I’m so proud of you I could officiate something. Love you to the gym and back. Maria';

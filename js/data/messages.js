@@ -10,6 +10,7 @@ export const CHARACTERS = {
   keith:   { name: 'Keith',  initials: 'K',  color: '#2f80c9' },
   brad:    { name: 'Brad',   initials: 'B',  color: '#3a9d6e' },
   shauna:  { name: 'Shauna', initials: 'S',  color: '#d4572b' },
+  ryan:    { name: 'Ryan',   initials: 'R',  color: '#b5651d' },
   emily:   { name: 'Emily',  initials: 'E',  color: '#c94fc2' },
   andrew:  { name: 'Andrew', initials: 'An', color: '#4a6fd6' },
   ian:     { name: 'Ian',    initials: 'I',  color: '#1e9bb0' },
@@ -27,7 +28,7 @@ export const PROPS = {
   paw: { emoji: '🐾' },
 };
 
-export const FAMILY = ['maria', 'keith', 'dobby', 'luna', 'shauna', 'emily', 'andrew', 'ian', 'gavin', 'brad', 'mom', 'dad'];
+export const FAMILY = ['maria', 'keith', 'dobby', 'luna', 'shauna', 'ryan', 'emily', 'andrew', 'ian', 'gavin', 'brad', 'mom', 'dad'];
 
 // After each exercise
 export const EXERCISE_MESSAGES = [
@@ -83,6 +84,13 @@ export const EXERCISE_MESSAGES = [
   // Shauna
   { who: ['shauna', 'dobby'], text: "I've fed Dobby three snacks to celebrate. He supports this program." },
   { who: ['shauna'], text: "Little sister's got serious strength. Who knew. (We knew.)" },
+
+  // Ryan
+  { who: ['ryan'], text: "I've known you since you were knee-high. Now look at you lifting things." },
+  { who: ['ryan'], text: "Former roommate, current fan. That was a great set." },
+  { who: ['ryan'], text: "You've seen my party side. I've now seen your gym side. We're even." },
+  { who: ['ryan'], text: "I know all the real stories from uni. My lips are sealed. Great set though." },
+  { who: ['ryan', 'shauna'], text: 'Shauna and I both saw that. We’re both impressed. Shauna more loudly.' },
 
   // Mom and Dad
   { who: ['mom', 'dad'], text: "That's our girl." },
@@ -142,6 +150,7 @@ export const OPENING_LINES = [
   { who: ['mom', 'dad'], text: "That's our girl. Off you go." },
   { who: ['emily'], text: 'Favourite niece checking in. Go get it.' },
   { who: ['shauna', 'dobby'], text: "Shauna is feeding Dobby a snack for luck. It's tradition now." },
+  { who: ['ryan'], text: "Ryan's been cheering for you since you were a toddler. He's not stopping now." },
   { who: ['brad', 'luna'], text: 'Brad and Luna are cheering. Brad is mostly cheering for Luna.' },
 ];
 
