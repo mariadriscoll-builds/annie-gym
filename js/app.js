@@ -183,6 +183,12 @@ function homeHTML() {
     <div><p class="eyebrow">Annie's gym</p><h1>Hi Annie!</h1></div>
     <button class="icon-btn" data-act="nav" data-to="settings" aria-label="Settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></button>
   </header>
+  ${state.active ? `<div class="card in-progress">
+           <h2>Workout in progress</h2>
+           <p>${esc(focusById(state.active.focus).day)} · ${doneCount(state.active)} of ${state.active.items.length} done</p>
+           <button class="primary big-btn" data-act="continue-session">Back to your workout</button>
+           <button class="ghost wide" data-act="start-different">Start a different workout</button>
+         </div>` : ''}
   <section class="card fresh">
     <div class="who-row">${msg.who.map((id) => avatar(id, 'sm')).join('')}${(msg.props || []).map((p) => prop(p)).join('')}</div>
     <p>${esc(msg.text)}</p>
@@ -199,8 +205,7 @@ function homeHTML() {
   ${t.socks ? `<section class="card socks">${prop('sock', 'big-prop')}<div><strong>${t.socks}</strong> ${t.socks === 1 ? 'sock' : 'socks'} in Dobby's collection</div></section>` : ''}
   <div class="start">
     ${state.active
-      ? `<button class="primary big-btn" data-act="continue-session">Back to your workout</button>
-         <p class="hint">${esc(focusById(state.active.focus).label)} workout in progress.</p>`
+      ? ''
       : `${focusPickerHTML()}
          <button class="primary big-btn" data-act="start-session">${startLabel(didToday)}</button>
          <p class="hint">${esc(focusById(view.focus).hint)}</p>`}
@@ -846,6 +851,22 @@ document.addEventListener('click', (e) => {
       render();
       break;
     }
+    case 'start-different': {
+      // nothing ticked: quietly let it go. Something ticked: keep it in history first.
+      const a = state.active;
+      if (a && doneCount(a) > 0) {
+        if (!window.confirm("Save what you've done so far to your history and start a different workout?")) break;
+        a.finishedAt = Date.now();
+        state.sessions.push(a);
+      }
+      state.active = null;
+      view.focus = 'full';
+      stopTimer();
+      hideToast();
+      save();
+      render();
+      break;
+    }
     case 'focus':
       view.focus = el.dataset.focus;
       render();
@@ -1051,7 +1072,7 @@ function start() {
     save();
     celebrate({ ...surpriseToCelebration(ds.surprise), button: 'Love it' });
   }
-  if (state.active) view.screen = 'session';
+  // always open on the home screen; a workout in progress waits there with a button back into it
   render();
   showSplash();
 }

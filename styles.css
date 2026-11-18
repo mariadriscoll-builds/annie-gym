@@ -86,6 +86,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .paw-num .paw { width: 84px; height: 84px; }
 .socks { display: flex; align-items: center; gap: 12px; }
 .start { margin-top: 20px; }
+.in-progress h2 { margin-bottom: 2px; }
+.in-progress p { margin: 0 0 12px; color: var(--muted); }
+.in-progress .wide { margin-top: 10px; min-height: 44px; }
 .focus { margin-bottom: 14px; }
 .focus-label { margin: 0 0 8px; font-size: 13px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
