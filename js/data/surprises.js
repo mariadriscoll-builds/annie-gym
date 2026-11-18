@@ -145,4 +145,4 @@ export const YEAR_TOASTS = [
   { who: ['brad', 'luna'], text: 'Luna says congratulations. So do I. In that order.' },
 ];
 
-export const YEAR_NOTE = 'Annie, one whole year. I’m so proud of you I could officiate something. Love you to the gym and back. Maria';
+export const YEAR_NOTE = 'Annie, a whole year! I already knew I was your favourite sister, and now I’m also your proudest. For the record, I’ve never made it a full year at the gym. You’re officially the strong one. Love, Maria';
